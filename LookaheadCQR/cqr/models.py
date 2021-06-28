@@ -5,11 +5,11 @@ import numpy as np
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
-
 if torch.cuda.is_available():
     device = "cuda:0"
 else:
     device = "cpu"
+
 
 ###############################################################################
 # Helper functions
@@ -41,8 +41,8 @@ def epoch_internal_train(model, loss_func, x_train, y_train, batch_size, optimiz
     for idx in range(0, x_train.shape[0], batch_size):
         cnt = cnt + 1
         optimizer.zero_grad()
-        batch_x = x_train[idx : min(idx + batch_size, x_train.shape[0]),:]
-        batch_y = y_train[idx : min(idx + batch_size, y_train.shape[0])]
+        batch_x = x_train[idx: min(idx + batch_size, x_train.shape[0]), :]
+        batch_y = y_train[idx: min(idx + batch_size, y_train.shape[0])]
         preds = model(batch_x)
         loss = loss_func(preds, batch_y)
         loss.backward()
@@ -55,6 +55,7 @@ def epoch_internal_train(model, loss_func, x_train, y_train, batch_size, optimiz
     epoch_loss = np.mean(epoch_losses)
 
     return epoch_loss, cnt
+
 
 def rearrange(all_quantiles, quantile_low, quantile_high, test_preds):
     """ Produce monotonic quantiles
@@ -75,10 +76,11 @@ def rearrange(all_quantiles, quantile_low, quantile_high, test_preds):
             Econometrica 78.3 (2010): 1093-1125.
     """
     scaling = all_quantiles[-1] - all_quantiles[0]
-    low_val = (quantile_low - all_quantiles[0])/scaling
-    high_val = (quantile_high - all_quantiles[0])/scaling
-    q_fixed = np.quantile(test_preds,(low_val, high_val),interpolation='linear',axis=1)
+    low_val = (quantile_low - all_quantiles[0]) / scaling
+    high_val = (quantile_high - all_quantiles[0]) / scaling
+    q_fixed = np.quantile(test_preds, (low_val, high_val), interpolation='linear', axis=1)
     return q_fixed.T
+
 
 ###############################################################################
 # Deep conditional mean regression
@@ -136,10 +138,12 @@ class mse_model(nn.Module):
         """
         return torch.squeeze(self.base_model(x))
 
+
 # Define the training procedure
 class LearnerOptimized:
     """ Fit a neural network (conditional mean) to training data
     """
+
     def __init__(self, model, optimizer_class, loss_func, device='cpu', test_ratio=0.2, random_state=0):
         """ Initialization
         Parameters
@@ -178,7 +182,7 @@ class LearnerOptimized:
         optimizer = self.optimizer_class(model.parameters())
         best_epoch = epochs
 
-        x_train, xx, y_train, yy = train_test_split(x, y, test_size=self.test_ratio,random_state=self.random_state)
+        x_train, xx, y_train, yy = train_test_split(x, y, test_size=self.test_ratio, random_state=self.random_state)
 
         x_train = torch.from_numpy(x_train).float().to(self.device).requires_grad_(False)
         xx = torch.from_numpy(xx).float().to(self.device).requires_grad_(False)
@@ -207,8 +211,10 @@ class LearnerOptimized:
                 best_epoch = e
                 best_cnt = cnt
 
-            if (e+1) % 100 == 0 and verbose:
-                print("CV: Epoch {}: Train {}, Test {}, Best epoch {}, Best loss {}".format(e+1, epoch_loss, test_epoch_loss, best_epoch, best_test_epoch_loss))
+            if (e + 1) % 100 == 0 and verbose:
+                print("CV: Epoch {}: Train {}, Test {}, Best epoch {}, Best loss {}".format(e + 1, epoch_loss,
+                                                                                            test_epoch_loss, best_epoch,
+                                                                                            best_test_epoch_loss))
                 sys.stdout.flush()
 
         # use all the data to train the model, for best_cnt steps
@@ -216,15 +222,16 @@ class LearnerOptimized:
         y = torch.from_numpy(y).float().to(self.device).requires_grad_(False)
 
         cnt = 0
-        for e in range(best_epoch+1):
+        for e in range(best_epoch + 1):
             if cnt > best_cnt:
                 break
 
-            epoch_loss, cnt = epoch_internal_train(self.model, self.loss_func, x, y, batch_size, self.optimizer, cnt, best_cnt)
+            epoch_loss, cnt = epoch_internal_train(self.model, self.loss_func, x, y, batch_size, self.optimizer, cnt,
+                                                   best_cnt)
             self.full_loss_history.append(epoch_loss)
 
-            if (e+1) % 100 == 0 and verbose:
-                print("Full: Epoch {}: {}, cnt {}".format(e+1, epoch_loss, cnt))
+            if (e + 1) % 100 == 0 and verbose:
+                print("Full: Epoch {}: {}, cnt {}".format(e + 1, epoch_loss, cnt))
                 sys.stdout.flush()
 
     def predict(self, x):
@@ -250,6 +257,7 @@ class LearnerOptimized:
 class AllQuantileLoss(nn.Module):
     """ Pinball loss function
     """
+
     def __init__(self, quantiles):
         """ Initialize
         Parameters
@@ -275,7 +283,7 @@ class AllQuantileLoss(nn.Module):
 
         for i, q in enumerate(self.quantiles):
             errors = target - preds[:, i]
-            losses.append(torch.max((q-1) * errors, q * errors).unsqueeze(1))
+            losses.append(torch.max((q - 1) * errors, q * errors).unsqueeze(1))
 
         loss = torch.mean(torch.sum(torch.cat(losses, dim=1), dim=1))
         return loss
@@ -284,6 +292,7 @@ class AllQuantileLoss(nn.Module):
 class all_q_model(nn.Module):
     """ Conditional quantile estimator, formulated as neural net
     """
+
     def __init__(self,
                  quantiles,
                  in_shape=1,
@@ -333,9 +342,11 @@ class all_q_model(nn.Module):
         """
         return self.base_model(x)
 
+
 class LearnerOptimizedCrossing:
     """ Fit a neural network (conditional quantile) to training data
     """
+
     def __init__(self, model, optimizer_class, loss_func, device='cpu', test_ratio=0.2, random_state=0,
                  qlow=0.05, qhigh=0.95, use_rearrangement=False):
         """ Initialization
@@ -357,7 +368,7 @@ class LearnerOptimizedCrossing:
         self.compute_coverage = True
         self.quantile_low = qlow
         self.quantile_high = qhigh
-        self.target_coverage = 100.0*(self.quantile_high - self.quantile_low)
+        self.target_coverage = 100.0 * (self.quantile_high - self.quantile_low)
         self.all_quantiles = loss_func.quantiles
         self.optimizer_class = optimizer_class
         self.optimizer = optimizer_class(self.model.parameters())
@@ -416,8 +427,8 @@ class LearnerOptimizedCrossing:
             if self.use_rearrangement:
                 test_preds = rearrange(self.all_quantiles, self.quantile_low, self.quantile_high, test_preds)
 
-            y_lower = test_preds[:,0]
-            y_upper = test_preds[:,1]
+            y_lower = test_preds[:, 0]
+            y_upper = test_preds[:, 1]
             coverage, avg_length = compute_coverage_len(yy_cpu, y_lower, y_upper)
 
             if (coverage >= self.target_coverage) and (avg_length < best_avg_length):
@@ -426,22 +437,25 @@ class LearnerOptimizedCrossing:
                 best_epoch = e
                 best_cnt = cnt
 
-            if (e+1) % 100 == 0 and verbose:
-                print("CV: Epoch {}: Train {}, Test {}, Best epoch {}, Best Coverage {} Best Length {} Cur Coverage {}".format(e+1, epoch_loss, test_epoch_loss, best_epoch, best_coverage, best_avg_length, coverage))
+            if (e + 1) % 100 == 0 and verbose:
+                print(
+                    "CV: Epoch {}: Train {}, Test {}, Best epoch {}, Best Coverage {} Best Length {} Cur Coverage {}".format(
+                        e + 1, epoch_loss, test_epoch_loss, best_epoch, best_coverage, best_avg_length, coverage))
                 sys.stdout.flush()
 
         x = torch.from_numpy(x).float().to(self.device).requires_grad_(False)
         y = torch.from_numpy(y).float().to(self.device).requires_grad_(False)
 
         cnt = 0
-        for e in range(best_epoch+1):
+        for e in range(best_epoch + 1):
             if cnt > best_cnt:
                 break
-            epoch_loss, cnt = epoch_internal_train(self.model, self.loss_func, x, y, batch_size, self.optimizer, cnt, best_cnt)
+            epoch_loss, cnt = epoch_internal_train(self.model, self.loss_func, x, y, batch_size, self.optimizer, cnt,
+                                                   best_cnt)
             self.full_loss_history.append(epoch_loss)
 
-            if (e+1) % 100 == 0 and verbose:
-                print("Full: Epoch {}: {}, cnt {}".format(e+1, epoch_loss, cnt))
+            if (e + 1) % 100 == 0 and verbose:
+                print("Full: Epoch {}: {}, cnt {}".format(e + 1, epoch_loss, cnt))
                 sys.stdout.flush()
 
     def predict(self, x):
@@ -458,6 +472,6 @@ class LearnerOptimizedCrossing:
         if self.use_rearrangement:
             test_preds = rearrange(self.all_quantiles, self.quantile_low, self.quantile_high, test_preds)
         else:
-            test_preds[:,0] = np.min(test_preds,axis=1)
-            test_preds[:,1] = np.max(test_preds,axis=1)
+            test_preds[:, 0] = np.min(test_preds, axis=1)
+            test_preds[:, 1] = np.max(test_preds, axis=1)
         return test_preds

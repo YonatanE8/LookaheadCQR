@@ -1,0 +1,3 @@
+INPUT_KEY = 'x'
+OUTPUT_KEY = 'y'
+PREDICTION_KEY = 'y'
