@@ -144,7 +144,7 @@ class CQR(UncertModel):
 
         metrics = [
             training_loss,
-            0 if self.alpha == 0 else l2_reg,
+            0 if self.alpha == 0 else l2_reg.item(),
             objectives,
         ]
 
