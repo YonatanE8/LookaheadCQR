@@ -1,8 +1,8 @@
-from lookahead.models.models import *
-from lookahead.models.utils import *
+from LookaheadCQR.lookahead.models.models import *
+from LookaheadCQR.lookahead.models.utils import *
 
 
-class PredModel():
+class PredModel:
     def __init__(self, num_features, model=None, alpha=0., reg_type='none',
                  move_type='scale', lr=0.1, num_iter=50, num_iter_init=1000):
         """

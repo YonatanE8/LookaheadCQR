@@ -1,9 +1,9 @@
 import copy
-from lookahead.models.utils import *
-from lookahead.models.models import *
+from LookaheadCQR.lookahead.models.utils import *
+from LookaheadCQR.lookahead.models.models import *
 
 
-class UncertModel():
+class UncertModel:
     def __init__(self, num_features, model=None):
         """ Class wrapper for the Uncertainty Model"""
         self.d = num_features

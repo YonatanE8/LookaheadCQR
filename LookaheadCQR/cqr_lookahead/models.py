@@ -3,6 +3,8 @@ from torch import Tensor
 from typing import Union
 
 import torch.nn as nn
+import numpy as np
+import sklearn
 
 
 def init_weights(module: nn.Module):
@@ -42,6 +44,7 @@ def _get_activation_layer(activation: Union[str, dict] = 'relu') -> nn.Module:
         'leakyrelu': nn.LeakyReLU,
         'prelu': nn.PReLU,
         'tanh': nn.Tanh,
+        'sigmoid': nn.Sigmoid,
     }
 
     # Validate inputs
@@ -179,6 +182,7 @@ def get_fc_layer(
     # Add the Dropout block if required
     if dropout is not None:
         dropout_block = MCDropout(p=dropout)
+        # dropout_block = nn.Dropout(p=dropout)
         blocks.append(dropout_block)
 
     # Encapsulate all blocks as a single `Sequential` module.
@@ -343,12 +347,15 @@ class MCDropout(nn.Module):
         return self._dropout(x)
 
 
-class CQRQuatileRegressor(nn.Module):
+class CQRQuantileRegressor(nn.Module):
     """
     A neural-network parametrization of quantile regressor (as was described in the CQR paper)
     """
 
-    def __init__(self, in_channels: int):
+    def __init__(
+            self,
+            in_channels: int,
+    ):
         """
 
         :param in_channels: Number of channel in the inputs
@@ -359,23 +366,26 @@ class CQRQuatileRegressor(nn.Module):
         self._model = MLP(
             n_layers=3,
             in_channels=in_channels,
-            out_channels=1,
+            out_channels=2,
             l0_units=64,
-            units_grow_rate=1,
+            units_grow_rate=2,
+            grow_every_x_layer=1,
             bias=True,
+            # activation='relu',
             activation={
                 "name": "leakyrelu",
                 "params": {
                     "negative_slope": 0.2
                 }
             },
+            # final_activation='sigmoid',
             final_activation=None,
-            dropout=0.2,
+            dropout=0.4,
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        quantile = self._model(x)
-        return quantile
+        quantiles = self._model(x)
+        return quantiles
 
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)

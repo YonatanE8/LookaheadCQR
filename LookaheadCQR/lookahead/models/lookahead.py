@@ -1,9 +1,19 @@
-from lookahead.models.utils import *
+from LookaheadCQR.cqr_lookahead.uncertainty import CQR
+from LookaheadCQR.lookahead.models.utils import *
 
 
 class Lookahead:
-    def __init__(self, pred_model, uncert_model, prop_model,
-                 lam=1.0, eta=1.0, mask=None, z_score=1.65, ground_truth_model=None):
+    def __init__(
+            self,
+            pred_model,
+            uncert_model,
+            prop_model,
+            lam=1.0,
+            eta=1.0,
+            mask=None,
+            z_score=1.65,
+            ground_truth_model=None,
+    ):
         """
         Implements the lookahead models and the training procedure
         Arguments:
@@ -57,16 +67,27 @@ class Lookahead:
             # print('w:', w)
 
             # train interval models:
-            metrics_u_t = self.u.fit(x, y, w, random_state=random_state)
+            if isinstance(self.u, CQR):
+                metrics_u_t = self.u.fit(x, y)
+
+            else:
+                metrics_u_t = self.u.fit(x, y, w, random_state=random_state)
+
             vprint(verbose, '[u] loss: {:.4f}, norm_reg: {:.4f}, obj: {:.4f}'.format(*metrics_u_t))
             # vprint(verbose,'[u] loss: {:.4f}, sz_reg: {:.4f}, norm_reg: {:.4f}, obj: {:.4f}'.format(*metrics_u_t))
             cntn, intr_sz = self.contain(xp)
             vprint(verbose, '[u] size: {:.3f}, contain*: {:.3f}'.format(intr_sz, cntn))
 
             # train predictive models:
-            metrics_f_t = self.f.fit(x, y, lam=self.lam, eta=self.eta,
-                                     mask=self.mask, z_score=self.z_score,
-                                     uncert_model=self.u)
+            metrics_f_t = self.f.fit(
+                x,
+                y,
+                lam=self.lam,
+                eta=self.eta,
+                mask=self.mask,
+                z_score=self.z_score,
+                uncert_model=self.u,
+            )
             vprint(verbose, '[f] mse: {:.4f}, la_reg: {:.4f}, norm_reg: {:.4f}, obj: {:.4f}'.format(*metrics_f_t))
 
             # evaluate:
@@ -108,14 +129,16 @@ class Lookahead:
         return np.mean(yp > y)
 
     def contain(self, x):
-        """ Computes the percentage of times x lies in the uncerntainty interval
-        and also computes the interval size """
+        """ Computes the percentage of times x lies in the uncertainty interval
+        and also computes the interval size in % of y"""
 
         lb, ub = self.u.predict(x)
         intrvl_sz = np.mean(ub - lb)
         if self.fstar is not None:
             y = self.fstar.predict(x)
             contain_ = np.mean(np.logical_and(lb <= y, y <= ub))
+
         else:
             contain_ = np.nan
+
         return contain_, intrvl_sz
