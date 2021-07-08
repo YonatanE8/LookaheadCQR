@@ -78,6 +78,8 @@ class CQR(UncertModel):
                 replace=False,
             )
             random_inds = torch.from_numpy(random_inds)
+            random_inds = random_inds.to(dtype=torch.long)
+
 
             # Divide training data to batches
             random_training_inputs = train_set_inputs[random_inds]

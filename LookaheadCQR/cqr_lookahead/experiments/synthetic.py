@@ -20,8 +20,7 @@ np.set_printoptions(precision=3)
 
 # Helper functions to print performance
 def get_perf(model, xs, ys, eta, mask, x, uncert=False):
-    perf = {'mse': [], 'mae': [], 'improve': [], 'imprate': [], 'contain': [],
-            'size': []}
+    perf = {'mse': [], 'mae': [], 'improve': [], 'imprate': [], 'contain': [], 'size': []}
     perf['mse'].append([model.mse(x_, y_) for x_, y_ in zip(xs, ys)])
     perf['mae'].append([model.mae(x_, y_) for x_, y_ in zip(xs, ys)])
     perf['improve'].append([model.improve(x_, y_, eta, mask) for x_, y_ in zip(xs, ys)])
@@ -90,7 +89,6 @@ class Fstar_parabola():
             c = self.coeffs[-i] + c * x
         return c.flatten()
 
-
 class Fstar_sin():
     def __init__(self, coeffs=[]):
         self.coeffs = coeffs
@@ -102,6 +100,19 @@ class Fstar_sin():
         c = self.coeffs[-1]
         for i in range(2, len(self.coeffs) + 1):
             c = self.coeffs[-i] + c * np.sin(x / (i - 1))
+        return c.flatten()
+
+class Fstar_exp():
+    def __init__(self, coeffs=[]):
+        self.coeffs = coeffs
+
+    def fit(self, x, y):
+        pass
+
+    def predict(self, x):
+        c = self.coeffs[-1]
+        for i in range(2, len(self.coeffs) + 1):
+            c = self.coeffs[-i] + c * np.exp(x *(i - 1))
         return c.flatten()
 
 
@@ -259,13 +270,16 @@ def synthetic_exp(eta, fstar, name):
     plot_quad(ax, model, x, y, x_plot, y_plot, eta, mask, lw=2, color='green')
     ax.set_xlim([-2.2, 2.2])
     ax.set_ylim([-4, 1])
-    plt.title(r'$\eta={}$'.format(eta))
+    #plt.title(r'$\eta={}$'.format(eta))
+    plt.title(r'${}$'.format(name))
 
     plot_quad(ax, nn_cqr_model, x, y, x_plot, y_plot, eta, mask, lw=2, color='purple',
               fill_between_color='m')
     ax.set_xlim([-2.2, 2.2])
     ax.set_ylim([-4, 1])
-    plt.title(r'$\eta={}$'.format(eta))
+    plt.title(r'${}$'.format(name))
+    #plt.title(r'$\eta={}$'.format(eta))
+
 
     ax.legend(
         [
@@ -286,7 +300,9 @@ coeffs = [0.1, 0.5, -0.8]
 
 fstar_poly = Fstar_parabola(coeffs)
 fstar_sin = Fstar_sin(coeffs)
-fstars = (fstar_poly, fstar_sin)
+fstar_exp = Fstar_exp(coeffs)
+fstars = (fstar_poly, fstar_sin,fstar_exp)
+f_name = ['Poly','Sinus','Exp']
 
 # Decision step size
 etas = (0.4, 0.8, 1.25, 2)
@@ -295,7 +311,7 @@ etas = (0.4, 0.8, 1.25, 2)
 if __name__ == '__main__':
     for i, f_star in enumerate(fstars):
         for eta_ in etas:
-            name_ = f"EXP: eta={eta_}, {'Sinus' if i else 'Poly'}"
-            synthetic_exp(eta_, f_star, name_)
 
+            name_ = f"EXP: eta={eta_}, {f_name[i]}"
+            synthetic_exp(eta_, f_star, name_)
     plt.show()
