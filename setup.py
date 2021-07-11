@@ -35,6 +35,6 @@ setup(name='LookaheadCQR',
           'pygam',
           'cycler',
           'jupyter',
-          'scikit-garden',
+          #'scikit-garden',
       ],
       )

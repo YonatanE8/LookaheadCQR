@@ -112,7 +112,7 @@ class Fstar_exp():
     def predict(self, x):
         c = self.coeffs[-1]
         for i in range(2, len(self.coeffs) + 1):
-            c = self.coeffs[-i] + c * np.exp(x *(i - 1))
+            c = self.coeffs[-i] + c * np.exp(x / (i - 1))
         return c.flatten()
 
 
@@ -300,18 +300,19 @@ coeffs = [0.1, 0.5, -0.8]
 
 fstar_poly = Fstar_parabola(coeffs)
 fstar_sin = Fstar_sin(coeffs)
-fstar_exp = Fstar_exp(coeffs)
+fstar_exp = Fstar_exp([0.8,0.3,-0.2])
 fstars = (fstar_poly, fstar_sin,fstar_exp)
 f_name = ['Poly','Sinus','Exp']
 
 # Decision step size
 etas = (0.4, 0.8, 1.25, 2)
-
+"""etas = [0.4]
+fstars = [fstar_exp]
+f_name = ['Exp']"""
 # Experiments names
 if __name__ == '__main__':
     for i, f_star in enumerate(fstars):
         for eta_ in etas:
-
-            name_ = f"EXP: eta={eta_}, {f_name[i]}"
+            name_ = f" eta={eta_}, {f_name[i]}"
             synthetic_exp(eta_, f_star, name_)
     plt.show()
